@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Noor.</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Amiri:wght@400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- ONBOARDING -->
+  <div id="onboarding" class="screen active">
+    <div id="splash" class="onboard-step active">
+      <h1 class="logo">Noor.</h1>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="muted" id="splashText">Preparing Noor. for offline use...</p>
+    </div>
+
+    <div id="terms" class="onboard-step">
+      <div class="terms-header">
+        <h2>Terms of Use</h2>
+      </div>
+      <div class="terms-body">
+        <h3>1. Location Usage</h3>
+        <p>This app may use your location to calculate prayer times and Qiblah direction. Location is only used when necessary and with your permission.</p>
+
+        <h3>2. Accuracy Disclaimer</h3>
+        <p>Prayer times and Qiblah direction are calculated using standard methods and device sensors. Results may vary. Always verify with a trusted local source when precision matters.</p>
+
+        <h3>3. Offline Use</h3>
+        <p>After initial setup, Quran reading works offline. Prayer times and Qiblah still require location access.</p>
+
+        <h3>4. Quran Content</h3>
+        <p>Quran text and translations are provided for personal reading and reflection. We do not claim ownership of the sacred text.</p>
+      </div>
+      <button class="btn primary" id="acceptTerms">Accept</button>
+    </div>
+
+    <div id="language" class="onboard-step">
+      <h1 class="logo">Noor.</h1>
+      <h2>Choose Language</h2>
+      <div class="lang-options">
+        <button class="lang-btn selected" data-lang="en">English</button>
+        <button class="lang-btn" data-lang="ms">Bahasa Melayu</button>
+      </div>
+      <button class="btn primary" id="confirmLang" disabled>Continue</button>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app" class="screen">
+    <!-- HOME -->
+    <section id="home" class="page active">
+      <header class="top-bar">
+        <h1 class="logo">Noor.</h1>
+        <button class="icon-btn" id="searchBtn" aria-label="Search">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+      </header>
+
+      <div class="date-block">
+        <div id="gregorianDate" class="gregorian"></div>
+        <div id="hijriDate" class="hijri"></div>
+      </div>
+
+      <div class="card daily-card">
+        <div class="ayah-arabic" id="dailyAyahArabic">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+        <div class="ayah-translation" id="dailyAyahTranslation">In the name of Allah, the Most Gracious, the Most Merciful.</div>
+        <div class="ayah-ref" id="dailyAyahRef">— Al-Fatihah 1:1</div>
+      </div>
+
+      <div class="card next-prayer-card">
+        <div class="next-label">NEXT PRAYER</div>
+        <div class="next-row">
+          <span id="nextPrayerName">Dhuhr</span>
+          <span id="nextPrayerTime">12:58</span>
+        </div>
+        <div class="countdown" id="countdown">—</div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="action-btn" data-page="quran">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span data-i18n="quran">Quran</span>
+        </button>
+        <button class="action-btn" data-page="qibla">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+          <span data-i18n="qibla">Qiblah</span>
+        </button>
+        <button class="action-btn" data-page="prayer">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span data-i18n="prayer">Prayer Times</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- QURAN LIST -->
+    <section id="quran" class="page">
+      <header class="top-bar">
+        <h1 data-i18n="quran">Quran</h1>
+        <button class="icon-btn" id="quranSearchBtn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+      </header>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="surah">Surah</button>
+        <button class="tab" data-tab="juz">Juz</button>
+      </div>
+
+      <div id="surahList" class="list"></div>
+      <div id="juzList" class="list hidden"></div>
+    </section>
+
+    <!-- QURAN READER -->
+    <section id="reader" class="page">
+      <header class="top-bar reader-header">
+        <button class="icon-btn" id="backFromReader">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="reader-title">
+          <div id="readerSurahName">Surah</div>
+          <div id="readerSurahTrans" class="muted"></div>
+        </div>
+        <button class="lang-toggle" id="transToggle">EN</button>
+      </header>
+
+      <div id="readerContent" class="reader-content">
+        <!-- filled by JS -->
+      </div>
+    </section>
+
+    <!-- QIBLA -->
+    <section id="qibla" class="page">
+      <header class="top-bar">
+        <button class="icon-btn back-btn" data-page="home">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 data-i18n="qibla">Qiblah</h1>
+        <div style="width:40px"></div>
+      </header>
+
+      <div class="qibla-container">
+        <div class="compass" id="compass">
+          <div class="compass-inner">
+            <div class="kaaba">🕋</div>
+            <div class="needle" id="needle"></div>
+            <div class="dir n">N</div>
+            <div class="dir e">E</div>
+            <div class="dir s">S</div>
+            <div class="dir w">W</div>
+          </div>
+        </div>
+        <div class="qibla-info">
+          <div class="label">Qiblah direction</div>
+          <div class="degree" id="qiblaDegree">—°</div>
+          <div class="sub" id="qiblaSub">Point your phone</div>
+        </div>
+        <p class="calibrate-tip">For best accuracy, calibrate by moving your phone in a figure-8 motion.</p>
+      </div>
+    </section>
+
+    <!-- PRAYER TIMES -->
+    <section id="prayer" class="page">
+      <header class="top-bar">
+        <button class="icon-btn back-btn" data-page="home">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 data-i18n="prayer">Prayer Times</h1>
+        <div style="width:40px"></div>
+      </header>
+
+      <div class="location-block">
+        <div id="prayerLocation">Detecting location...</div>
+        <div id="prayerDate" class="muted"></div>
+      </div>
+
+      <div id="prayerList" class="prayer-list">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="method-note muted" id="methodNote">Calculation Method: Muslim World League</div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="page">
+      <header class="top-bar">
+        <button class="icon-btn back-btn" data-page="home">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 data-i18n="settings">Settings</h1>
+        <div style="width:40px"></div>
+      </header>
+
+      <div class="settings-list">
+        <div class="setting-item">
+          <span data-i18n="language">Language</span>
+          <select id="settingsLang">
+            <option value="en">English</option>
+            <option value="ms">Bahasa Melayu</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <span data-i18n="calcMethod">Calculation Method</span>
+          <select id="calcMethod">
+            <option value="MWL">Muslim World League</option>
+            <option value="ISNA">ISNA</option>
+            <option value="Egypt">Egyptian</option>
+            <option value="Makkah">Umm al-Qura</option>
+            <option value="Karachi">Karachi</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <span>About Noor.</span>
+          <span class="muted">v1.0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-btn" data-page="quran">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span data-i18n="quran">Quran</span>
+      </button>
+      <button class="nav-btn" data-page="qibla">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+        <span data-i18n="qibla">Qiblah</span>
+      </button>
+      <button class="nav-btn active" data-page="home">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span data-i18n="home">Home</span>
+      </button>
+      <button class="nav-btn" data-page="prayer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span data-i18n="prayer">Prayer</span>
+      </button>
+      <button class="nav-btn" data-page="settings">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span data-i18n="settings">Settings</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/adhan@4.4.3/lib/adhan.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
