@@ -128,18 +128,14 @@ const I18N = {
   }
 };
 
-// State
 let lang = localStorage.getItem('noor_lang') || 'en';
 let calcMethod = localStorage.getItem('noor_method') || 'MWL';
 let userLat = null;
 let userLng = null;
 let qiblaAngle = 0;
 let currentHeading = 0;
-let prayerTimes = null;
-let currentSurah = null;
 let showTranslation = true;
 
-// ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('noor_onboarded')) {
     showApp();
@@ -150,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSettings();
 });
 
-// ========== ONBOARDING ==========
 function startOnboarding() {
   const fill = document.getElementById('progressFill');
   let p = 0;
@@ -199,7 +194,6 @@ function showApp() {
   renderJuzList();
 }
 
-// ========== LANGUAGE ==========
 function applyLanguage() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
@@ -209,20 +203,17 @@ function applyLanguage() {
   document.getElementById('calcMethod').value = calcMethod;
 }
 
-// ========== DATES ==========
 function updateDates() {
   const now = new Date();
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   document.getElementById('gregorianDate').textContent = now.toLocaleDateString(lang === 'ms' ? 'ms-MY' : 'en-US', options);
 
-  // Simple Hijri approximation (good enough for display)
   const hijri = gregorianToHijri(now);
   document.getElementById('hijriDate').textContent = `${hijri.day} ${hijri.monthName} ${hijri.year} AH`;
   document.getElementById('prayerDate').textContent = document.getElementById('gregorianDate').textContent + ' • ' + document.getElementById('hijriDate').textContent;
 }
 
 function gregorianToHijri(date) {
-  // Approximate conversion (Kuwaiti algorithm simplified)
   const gYear = date.getFullYear();
   const gMonth = date.getMonth() + 1;
   const gDay = date.getDate();
@@ -243,9 +234,7 @@ function gregorianToHijri(date) {
   return { day: d, month: m, year: y, monthName: months[m - 1] || months[0] };
 }
 
-// ========== DAILY AYAH ==========
 async function loadDailyAyah() {
-  // Use a fixed nice ayah for demo + random feel by day
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
   const samples = [
     { ar: "وَمَا تُقَدِّمُوا لِأَنفُسِكُم مِّنْ خَيْرٍ تَجِدُوهُ عِندَ اللَّهِ", en: "And whatever you put forward for yourselves of good, you will find it with Allah.", ref: "Al-Baqarah 2:110" },
@@ -259,10 +248,13 @@ async function loadDailyAyah() {
   document.getElementById('dailyAyahRef').textContent = "— " + s.ref;
 }
 
-// ========== LOCATION & PRAYER ==========
 function requestLocation() {
   if (!navigator.geolocation) {
     document.getElementById('prayerLocation').textContent = "Location not supported";
+    userLat = 3.1390;
+    userLng = 101.6869;
+    calculatePrayerTimes();
+    calculateQibla();
     return;
   }
   navigator.geolocation.getCurrentPosition(
@@ -274,46 +266,63 @@ function requestLocation() {
       calculateQibla();
     },
     err => {
-      document.getElementById('prayerLocation').textContent = "Allow location for accurate times";
-      // fallback to a default (Makkah area) just so UI works
-      userLat = 21.4225;
-      userLng = 39.8262;
+      document.getElementById('prayerLocation').textContent = "Using default location (KL)";
+      userLat = 3.1390;
+      userLng = 101.6869;
       calculatePrayerTimes();
       calculateQibla();
     },
-    { enableHighAccuracy: true, timeout: 10000 }
+    { enableHighAccuracy: true, timeout: 8000 }
   );
 }
 
 function calculatePrayerTimes() {
-  if (!userLat || typeof adhan === 'undefined') return;
+  if (!userLat || typeof adhan === 'undefined') {
+    document.getElementById('prayerList').innerHTML = '<p class="muted" style="padding:20px;text-align:center">Loading prayer times...</p>';
+    return;
+  }
 
   const coordinates = new adhan.Coordinates(userLat, userLng);
-  const params = adhan.CalculationMethod.MuslimWorldLeague();
-  if (calcMethod === 'ISNA') Object.assign(params, adhan.CalculationMethod.NorthAmerica());
-  if (calcMethod === 'Egypt') Object.assign(params, adhan.CalculationMethod.Egyptian());
-  if (calcMethod === 'Makkah') Object.assign(params, adhan.CalculationMethod.UmmAlQura());
-  if (calcMethod === 'Karachi') Object.assign(params, adhan.CalculationMethod.Karachi());
+  let params = adhan.CalculationMethod.MuslimWorldLeague();
+
+  if (calcMethod === 'ISNA') params = adhan.CalculationMethod.NorthAmerica();
+  if (calcMethod === 'Egypt') params = adhan.CalculationMethod.Egyptian();
+  if (calcMethod === 'Makkah') params = adhan.CalculationMethod.UmmAlQura();
+  if (calcMethod === 'Karachi') params = adhan.CalculationMethod.Karachi();
 
   const date = new Date();
-  prayerTimes = new adhan.PrayerTimes(coordinates, date, params);
+  const prayerTimes = new adhan.PrayerTimes(coordinates, date, params);
 
   const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-  const times = [prayerTimes.fajr, prayerTimes.sunrise, prayerTimes.dhuhr, prayerTimes.asr, prayerTimes.maghrib, prayerTimes.isha];
+  const times = [
+    prayerTimes.fajr,
+    prayerTimes.sunrise,
+    prayerTimes.dhuhr,
+    prayerTimes.asr,
+    prayerTimes.maghrib,
+    prayerTimes.isha
+  ];
 
   const now = new Date();
-  let nextIdx = times.findIndex(t => t > now);
+  let nextIdx = -1;
+
+  for (let i = 0; i < times.length; i++) {
+    if (times[i] > now) {
+      nextIdx = i;
+      break;
+    }
+  }
   if (nextIdx === -1) nextIdx = 0;
 
-  // Update home next prayer
   document.getElementById('nextPrayerName').textContent = names[nextIdx];
   document.getElementById('nextPrayerTime').textContent = formatTime(times[nextIdx]);
-  const diff = times[nextIdx] - now;
+
+  let diff = times[nextIdx] - now;
+  if (diff < 0) diff += 24 * 60 * 60 * 1000;
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
   document.getElementById('countdown').textContent = `in ${h}h ${m}m`;
 
-  // Prayer list page
   const list = document.getElementById('prayerList');
   list.innerHTML = '';
   names.forEach((name, i) => {
@@ -328,10 +337,8 @@ function formatTime(d) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// ========== QIBLA ==========
 function calculateQibla() {
   if (!userLat) return;
-  // Kaaba coordinates
   const kaabaLat = 21.4225;
   const kaabaLng = 39.8262;
   qiblaAngle = computeQibla(userLat, userLng, kaabaLat, kaabaLng);
@@ -349,14 +356,13 @@ function computeQibla(lat, lng, kLat, kLng) {
   return (θ + 360) % 360;
 }
 
-// Device orientation for compass
 if (window.DeviceOrientationEvent) {
   window.addEventListener('deviceorientation', (e) => {
     let heading = e.alpha;
     if (e.webkitCompassHeading !== undefined) {
-      heading = e.webkitCompassHeading; // iOS
+      heading = e.webkitCompassHeading;
     } else if (heading !== null) {
-      heading = 360 - heading; // Android usually
+      heading = 360 - heading;
     }
     if (heading !== null && !isNaN(heading)) {
       currentHeading = heading;
@@ -368,12 +374,10 @@ if (window.DeviceOrientationEvent) {
 function updateCompass() {
   const needle = document.getElementById('needle');
   if (!needle) return;
-  // Needle should point to qibla relative to current heading
   const rotation = qiblaAngle - currentHeading;
   needle.style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
 }
 
-// ========== QURAN ==========
 function renderSurahList() {
   const list = document.getElementById('surahList');
   list.innerHTML = '';
@@ -396,41 +400,48 @@ function renderSurahList() {
 function renderJuzList() {
   const list = document.getElementById('juzList');
   list.innerHTML = '';
+
+  const juzStart = [
+    1, 2, 2, 3, 4, 4, 5, 6, 7, 8,
+    9, 11, 12, 15, 17, 18, 21, 23, 25, 27,
+    29, 33, 36, 39, 41, 46, 51, 58, 67, 78
+  ];
+
   for (let i = 1; i <= 30; i++) {
+    const startSurah = juzStart[i - 1];
+    const surah = SURAH_LIST.find(s => s.n === startSurah);
+
     const item = document.createElement('div');
     item.className = 'list-item';
     item.innerHTML = `
       <div class="surah-num">${i}</div>
       <div class="surah-info">
         <div class="surah-ar">Juz ${i}</div>
-        <div class="surah-en">Para ${i}</div>
+        <div class="surah-en">Starts at ${surah ? (lang === 'ms' ? surah.ms : surah.en) : ''}</div>
       </div>
     `;
-    item.onclick = () => alert('Juz view coming in next update – for now open any Surah');
+    item.onclick = () => openSurah(startSurah);
     list.appendChild(item);
   }
 }
 
 async function openSurah(num) {
-  currentSurah = SURAH_LIST.find(s => s.n === num);
+  const currentSurah = SURAH_LIST.find(s => s.n === num);
   document.getElementById('readerSurahName').textContent = `${num}. ${currentSurah.ar}`;
   document.getElementById('readerSurahTrans').textContent = lang === 'ms' ? currentSurah.ms : currentSurah.en;
 
   const content = document.getElementById('readerContent');
   content.innerHTML = '<p class="muted" style="text-align:center;padding:40px">Loading...</p>';
-
   showPage('reader');
 
   try {
-    // Arabic
     const arRes = await fetch(`https://api.alquran.cloud/v1/surah/${num}`);
     const arData = await arRes.json();
-    // English translation (Sahih International)
     const enRes = await fetch(`https://api.alquran.cloud/v1/surah/${num}/en.sahih`);
     const enData = await enRes.json();
 
     let html = '';
-    if (num !== 9 && num !== 1) { // most surahs have bismillah
+    if (num !== 9 && num !== 1) {
       html += `
         <div class="bismillah">
           <div class="bismillah-ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
@@ -452,16 +463,14 @@ async function openSurah(num) {
 
     content.innerHTML = html;
   } catch (e) {
-    content.innerHTML = '<p class="muted" style="text-align:center;padding:40px">Could not load. Check your connection.</p>';
+    content.innerHTML = '<p class="muted" style="text-align:center;padding:40px">Could not load. Check connection.</p>';
   }
 }
 
-// ========== NAVIGATION ==========
 function setupNavigation() {
   document.querySelectorAll('[data-page]').forEach(el => {
     el.addEventListener('click', () => {
-      const page = el.dataset.page;
-      showPage(page);
+      showPage(el.dataset.page);
     });
   });
 
@@ -484,6 +493,29 @@ function setupNavigation() {
       el.style.display = showTranslation ? '' : 'none';
     });
   };
+
+  // Search
+  const searchBtn = document.getElementById('quranSearchBtn');
+  if (searchBtn) {
+    searchBtn.onclick = () => {
+      const query = prompt("Search Surah name or number:");
+      if (!query) return;
+
+      const q = query.toLowerCase().trim();
+      const found = SURAH_LIST.find(s => 
+        s.n.toString() === q ||
+        s.en.toLowerCase().includes(q) ||
+        s.ms.toLowerCase().includes(q) ||
+        s.ar.includes(q)
+      );
+
+      if (found) {
+        openSurah(found.n);
+      } else {
+        alert("Surah not found");
+      }
+    };
+  }
 }
 
 function showPage(id) {
@@ -494,18 +526,17 @@ function showPage(id) {
     b.classList.toggle('active', b.dataset.page === id);
   });
 
-  // special cases
   if (id === 'qibla') updateCompass();
   if (id === 'prayer') calculatePrayerTimes();
 }
 
-// ========== SETTINGS ==========
 function setupSettings() {
   document.getElementById('settingsLang').onchange = (e) => {
     lang = e.target.value;
     localStorage.setItem('noor_lang', lang);
     applyLanguage();
     renderSurahList();
+    renderJuzList();
     updateDates();
   };
   document.getElementById('calcMethod').onchange = (e) => {
