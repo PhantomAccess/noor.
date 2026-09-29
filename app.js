@@ -277,11 +277,77 @@ function requestLocation() {
 }
 
 function calculatePrayerTimes() {
-  if (!userLat || typeof adhan === 'undefined') {
-    document.getElementById('prayerList').innerHTML = '<p class="muted" style="padding:20px;text-align:center">Loading prayer times...</p>';
+  const list = document.getElementById('prayerList');
+
+  if (!userLat) {
+    list.innerHTML = '<p class="muted" style="padding:20px;text-align:center">Waiting for location...</p>';
     return;
   }
 
+  // Check if adhan library is available
+  if (typeof adhan === 'undefined') {
+    list.innerHTML = '<p class="muted" style="padding:20px;text-align:center">Prayer library failed to load.<br>Please refresh the page.</p>';
+    return;
+  }
+
+  try {
+    const coordinates = new adhan.Coordinates(userLat, userLng);
+    let params = adhan.CalculationMethod.MuslimWorldLeague();
+
+    if (calcMethod === 'ISNA') params = adhan.CalculationMethod.NorthAmerica();
+    if (calcMethod === 'Egypt') params = adhan.CalculationMethod.Egyptian();
+    if (calcMethod === 'Makkah') params = adhan.CalculationMethod.UmmAlQura();
+    if (calcMethod === 'Karachi') params = adhan.CalculationMethod.Karachi();
+
+    const date = new Date();
+    const prayerTimes = new adhan.PrayerTimes(coordinates, date, params);
+
+    const names = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const times = [
+      prayerTimes.fajr,
+      prayerTimes.sunrise,
+      prayerTimes.dhuhr,
+      prayerTimes.asr,
+      prayerTimes.maghrib,
+      prayerTimes.isha
+    ];
+
+    const now = new Date();
+    let nextIdx = -1;
+
+    for (let i = 0; i < times.length; i++) {
+      if (times[i] > now) {
+        nextIdx = i;
+        break;
+      }
+    }
+    if (nextIdx === -1) nextIdx = 0; // next day Fajr
+
+    // Update Home screen
+    document.getElementById('nextPrayerName').textContent = names[nextIdx];
+    document.getElementById('nextPrayerTime').textContent = formatTime(times[nextIdx]);
+
+    let diff = times[nextIdx] - now;
+    if (diff < 0) diff += 24 * 60 * 60 * 1000;
+
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    document.getElementById('countdown').textContent = `in ${h}h ${m}m`;
+
+    // Update Prayer Times page
+    list.innerHTML = '';
+    names.forEach((name, i) => {
+      const row = document.createElement('div');
+      row.className = 'prayer-row' + (i === nextIdx ? ' next' : '');
+      row.innerHTML = `<span class="prayer-name">${name}</span><span>${formatTime(times[i])}</span>`;
+      list.appendChild(row);
+    });
+
+  } catch (error) {
+    console.error("Prayer times error:", error);
+    list.innerHTML = '<p class="muted" style="padding:20px;text-align:center">Error calculating prayer times.<br>Please refresh.</p>';
+  }
+}
   const coordinates = new adhan.Coordinates(userLat, userLng);
   let params = adhan.CalculationMethod.MuslimWorldLeague();
 
@@ -494,7 +560,7 @@ function setupNavigation() {
     });
   };
 
-  // Search
+  // Smart Search
   const searchBtn = document.getElementById('quranSearchBtn');
   if (searchBtn) {
     searchBtn.onclick = () => {
@@ -502,21 +568,65 @@ function setupNavigation() {
       if (!query) return;
 
       const q = query.toLowerCase().trim();
-      const found = SURAH_LIST.find(s => 
+
+      // 1. Exact match (number or name)
+      let found = SURAH_LIST.find(s => 
         s.n.toString() === q ||
-        s.en.toLowerCase().includes(q) ||
-        s.ms.toLowerCase().includes(q) ||
-        s.ar.includes(q)
+        s.en.toLowerCase() === q ||
+        s.ms.toLowerCase() === q
       );
+
+      // 2. Partial match
+      if (!found) {
+        found = SURAH_LIST.find(s => 
+          s.en.toLowerCase().includes(q) ||
+          s.ms.toLowerCase().includes(q) ||
+          s.ar.includes(q)
+        );
+      }
 
       if (found) {
         openSurah(found.n);
+        return;
+      }
+
+      // 3. Smart suggestion (closest match)
+      let bestMatch = null;
+      let highestScore = 0;
+
+      SURAH_LIST.forEach(s => {
+        const name = s.en.toLowerCase();
+        let score = 0;
+
+        // Simple similarity scoring
+        if (name.startsWith(q)) score += 30;
+        if (name.includes(q)) score += 20;
+
+        // Check how many characters match in order
+        let qi = 0;
+        for (let i = 0; i < name.length && qi < q.length; i++) {
+          if (name[i] === q[qi]) {
+            score += 5;
+            qi++;
+          }
+        }
+
+        if (score > highestScore) {
+          highestScore = score;
+          bestMatch = s;
+        }
+      });
+
+      if (bestMatch && highestScore > 10) {
+        const confirmMsg = `Did you mean "${bestMatch.en}"?`;
+        if (confirm(confirmMsg)) {
+          openSurah(bestMatch.n);
+        }
       } else {
-        alert("Surah not found");
+        alert("Surah not found. Try typing the name or number more clearly.");
       }
     };
   }
-}
 
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
