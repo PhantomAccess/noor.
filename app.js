@@ -149,17 +149,32 @@ document.addEventListener('DOMContentLoaded', () => {
 function startOnboarding() {
   const fill = document.getElementById('progressFill');
   let p = 0;
+
   const interval = setInterval(() => {
-    p += 4;
-    fill.style.width = p + '%';
+    p += 5;
+    if (fill) fill.style.width = p + '%';
+
     if (p >= 100) {
       clearInterval(interval);
+
+      // Safety timeout - force move forward even if something fails
       setTimeout(() => {
-        document.getElementById('splash').classList.remove('active');
-        document.getElementById('terms').classList.add('active');
-      }, 400);
+        const splash = document.getElementById('splash');
+        const terms = document.getElementById('terms');
+
+        if (splash) splash.classList.remove('active');
+        if (terms) terms.classList.add('active');
+      }, 300);
     }
-  }, 40);
+  }, 30);
+
+  // Extra safety: if still stuck after 4 seconds, force go to main app
+  setTimeout(() => {
+    if (document.getElementById('onboarding').classList.contains('active')) {
+      localStorage.setItem('noor_onboarded', '1');
+      showApp();
+    }
+  }, 4000);
 
   document.getElementById('acceptTerms').onclick = () => {
     document.getElementById('terms').classList.remove('active');
